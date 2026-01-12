@@ -10,6 +10,7 @@ bug-reports: "https://github.com/super-nova-lang/onion/issues"
 depends: [
   "dune" {>= "3.20"}
   "ocaml"
+  "re"
   "odoc" {with-doc}
 ]
 build: [

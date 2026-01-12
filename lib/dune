@@ -1,2 +1,3 @@
 (library
- (name onion))
+ (name onion)
+ (libraries re))

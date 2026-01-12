@@ -17,7 +17,7 @@
 (package
  (name onion)
  (synopsis "Supernova Virtual Machine")
- (depends ocaml)
+ (depends ocaml re)
  (tags
   ("supernova" "virtualmachine")))
 

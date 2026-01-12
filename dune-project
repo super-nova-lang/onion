@@ -5,22 +5,19 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github super-nova-lang/onion))
 
-(authors "Author Name <author@example.com>")
+(authors "Ashton Sickler <ashton.sickler06@gmail.com>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "Ashton Sickler <ashton.sickler06@gmail.com>")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
 
 (package
  (name onion)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "Supernova Virtual Machine")
  (depends ocaml)
  (tags
-  ("add topics" "to describe" your project)))
+  ("supernova" "virtualmachine")))
 
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

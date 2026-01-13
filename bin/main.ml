@@ -1,20 +1,20 @@
+[@@@ocaml.warning "-32-26"]
+
 module O = Onion
 module Lexer = O.Lexer
 module Token = O.Token
-
-(* let lexer = L.init *)
-
-(* List.filter (fn t -> match t with  *)
-(*   | Token.Comment _ -> False  *)
-(*   | _ -> True) *)
-(**)
+module Chunk = O.Chunk
+module Vm = O.Vm
+module V = O.Value
 
 let read_file file =
   try In_channel.with_open_text file In_channel.input_all with
   | Sys_error msg -> failwith ("Failed to read file: " ^ msg)
 ;;
 
-let filter_comment = function
+let rec filter_comments t = List.filter filter_comments_helper t
+
+and filter_comments_helper = function
   | _, Token.Comment _ -> false
   | _ -> true
 ;;
@@ -26,8 +26,17 @@ let () =
     | args -> failwith ("got " ^ Int.to_string (Array.length args) ^ " args, expected 2")
   in
   let source = read_file filepath in
-  Lexer.collect Lexer.init filepath source []
-  |> List.filter filter_comment
-  |> List.map (fun (l, t) -> Lexer.pp_loc l ^ ": " ^ Token.debug t)
-  |> List.iter print_endline
+  match
+    Lexer.collect Lexer.init filepath source []
+    |> filter_comments
+    |> Chunk.start
+    |> Chunk.chunker 0
+    |> Chunk.finish
+    |> Vm.init
+    |> Vm.run
+  with
+  | Ok vm -> Vm.disassemble vm
+  | Error (vm, e) ->
+    Vm.disassemble vm;
+    failwith e
 ;;

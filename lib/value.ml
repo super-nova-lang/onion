@@ -14,8 +14,8 @@ let debug = function
 ;;
 
 let display = function
-  | ValNumber n -> P.sprintf "0x%X" n
-  | ValFloat f -> P.sprintf "%g" f
+  | ValNumber n -> P.sprintf "%d" n
+  | ValFloat f -> P.sprintf "%f" f
   | ValBool b -> Bool.to_string b
   | ValNil -> "nil"
 ;;

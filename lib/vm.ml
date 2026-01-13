@@ -6,9 +6,6 @@ module Dyn = Dynarray
 exception Stack_overflow
 exception Stack_underflow
 
-let ( + ) a b = a + b
-let ( +. ) a b = a +. b
-
 type t =
   { chunk : Ch.t
   ; ip : int
@@ -17,8 +14,8 @@ type t =
   ; pp_stack : Val.t Dyn.t
   }
 
-let init chunk =
-  { chunk; ip = 0; stack = Dyn.init (); pp_chunk = chunk; pp_stack = Dyn.init () }
+let init (chunk, pp_chunk) =
+  { chunk; ip = 0; stack = Dyn.init (); pp_chunk; pp_stack = Dyn.init () }
 ;;
 
 (* Stack functions *)
@@ -55,6 +52,8 @@ let rec run vm =
      | Op.OpReturn -> handle_return vm
      | Op.OpAdd -> handle_binary vm ~i:( + ) ~f:( +. )
      | Op.OpSub -> handle_binary vm ~i:( - ) ~f:( -. )
+     | Op.OpMul -> handle_binary vm ~i:( * ) ~f:( *. )
+     | Op.OpDiv -> handle_binary vm ~i:( / ) ~f:( /. )
      | op -> Error (vm, "unexpected op: " ^ Op.debug op))
   | None -> Ok vm
 
@@ -88,17 +87,23 @@ and handle_binary vm ~i ~f =
 ;;
 
 (* Disassembly functions *)
-let rec disassemble vm =
+let rec disassemble = function
+  | Ok vm -> disassemble_helper vm
+  | Error (vm, e) ->
+    disassemble_helper vm;
+    print_endline ("[ERROR]: " ^ e)
+
+and disassemble_helper vm =
   Ch.dissassemble vm.pp_chunk;
   print_endline "";
   disassemble_both vm
 
 and disassemble_both vm =
-  print_endline "--------------------+--------------";
-  print_endline " constants          | stack        ";
-  print_endline "--------------------+--------------";
-  print_endline " num | value        | slot | value ";
-  print_endline "--------------------+--------------";
+  print_endline "-----------------+------------";
+  print_endline "      consts     |   stack    ";
+  print_endline "-----------------+------------";
+  print_endline " num |   value   | stack old ";
+  print_endline "-----------------+------------";
   disassemble_both_helper vm 0 (Int.max vm.pp_chunk.consts.count vm.pp_stack.count)
 
 and disassemble_both_helper vm idx max_idx =
@@ -109,17 +114,17 @@ and disassemble_both_helper vm idx max_idx =
     let idx_str = Utils.pad_left (Int.to_string idx) 4 '0' in
     let val_str =
       if idx >= const_len
-      then Utils.pad_right "" 12 ' '
+      then Utils.pad_right "" 9 ' '
       else (
         match Dyn.get vm.pp_chunk.consts idx with
-        | Some v -> Utils.pad_right (Val.debug v) 0 ' '
+        | Some v -> Utils.pad_right (Val.display v) 9 ' '
         | None -> failwith "const idx out of bounds")
     in
     Printf.printf "%s | %s |" idx_str val_str;
-    match Dyn.get vm.pp_stack idx with
+    match Dyn.get (Dyn.rev vm.pp_stack) idx with
     | Some v ->
       let val_str = Utils.pad_right (Val.display v) 8 ' ' in
-      Printf.printf " %s | %s\n" idx_str val_str;
+      Printf.printf " %s\n" val_str;
       disassemble_both_helper vm (idx + 1) max_idx
     | None -> print_endline "")
 ;;

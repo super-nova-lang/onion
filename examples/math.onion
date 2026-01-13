@@ -1,7 +1,11 @@
+;; Prints 0x3 to the console
 constant 0x1
 constant 0x2
-add return ;; 0x3
+add
+return
 
-constant 0xA
-constant 0x4
-sub return ;; 0x6
+;; Prints some float to the console
+constant 1.0
+constant 2.4
+sub
+return

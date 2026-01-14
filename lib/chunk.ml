@@ -20,11 +20,10 @@ let write_const t value idx loc =
 
 (* Comment functions *)
 let get_comments t = List.rev t.comments.items
+
 let write_comment t loc comment =
-  { t with
-    comments = Dyn.write t.comments (Some comment)
-  ; lines = Dyn.write t.lines loc
-  }
+  { t with comments = Dyn.write t.comments (Some comment); lines = Dyn.write t.lines loc }
+;;
 
 (* Code functions *)
 
@@ -62,11 +61,13 @@ and dissassemble_inst t _codes lines comments offset prev =
       let cn = List.nth comments i in
       let line_str = if ln.row = prev then "|" else Int.to_string ln.row in
       let len = List.length comments in
-      if cn = None then (
+      if cn = None
+      then (
         (* This slot corresponds to a code. Check if the next slot is an inline comment on the same line *)
         let x = List.nth codes code_idx in
         let inline_comment =
-          if i + 1 < len then (
+          if i + 1 < len
+          then (
             match List.nth comments (i + 1) with
             | Some msg ->
               let next_ln = List.nth lines (i + 1) in
@@ -79,9 +80,17 @@ and dissassemble_inst t _codes lines comments offset prev =
         let operand_str = Utils.pad_right (Opcode.operand x) 13 ' ' in
         let line_str = Utils.pad_left line_str 4 ' ' in
         let comment_str =
-          match inline_comment with Some msg -> Utils.pad_right msg 12 ' ' | None -> Utils.pad_right "" 12 ' '
+          match inline_comment with
+          | Some msg -> Utils.pad_right msg 12 ' '
+          | None -> Utils.pad_right "" 12 ' '
         in
-        Printf.printf "%s | %s | %s | %s | %s\n" addr_str line_str op_str operand_str comment_str;
+        Printf.printf
+          "%s | %s | %s | %s | %s\n"
+          addr_str
+          line_str
+          op_str
+          operand_str
+          comment_str;
         let next_prev = ln.row in
         let consumed = if inline_comment = None then 1 else 2 in
         loop (i + consumed) (code_idx + 1) (offset + 1) next_prev)
@@ -92,12 +101,20 @@ and dissassemble_inst t _codes lines comments offset prev =
         let operand_str = Utils.pad_right "" 13 ' ' in
         let line_str = Utils.pad_left line_str 4 ' ' in
         let comment_str =
-          match cn with Some msg -> Utils.pad_right msg 12 ' ' | None -> Utils.pad_right "" 12 ' '
+          match cn with
+          | Some msg -> Utils.pad_right msg 12 ' '
+          | None -> Utils.pad_right "" 12 ' '
         in
-        Printf.printf "%s | %s | %s | %s | %s\n" addr_str line_str op_str operand_str comment_str;
+        Printf.printf
+          "%s | %s | %s | %s | %s\n"
+          addr_str
+          line_str
+          op_str
+          operand_str
+          comment_str;
         let next_prev = ln.row in
-        loop (i + 1) code_idx offset next_prev)
-  ) in
+        loop (i + 1) code_idx offset next_prev))
+  in
   loop 0 0 offset prev
 ;;
 

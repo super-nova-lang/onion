@@ -20,7 +20,11 @@ let write_const t value idx loc =
 
 (* Comment functions *)
 let get_comments t = List.rev t.comments.items
-let write_comment t comment = { t with comments = Dyn.write t.comments (Some comment) }
+let write_comment t loc comment =
+  { t with
+    comments = Dyn.write t.comments (Some comment)
+  ; lines = Dyn.write t.lines loc
+  }
 
 (* Code functions *)
 
@@ -45,33 +49,56 @@ let rec dissassemble t =
   dissassemble_inst t (get_codes t) (get_lines t) (get_comments t) 0 (-1);
   print_endline "-----+------+------------+---------------+-----------"
 
-and dissassemble_inst t codes lines comments offset prev =
-  match codes, lines, comments with
-  | x :: xs, ln :: ls, cn :: cs ->
-    let line_str = if ln.row == prev then "|" else Int.to_string ln.row in
-    let op_name = Opcode.debug x in
-    let operand = Opcode.operand x in
-    let comment =
-      match cn with
-      | Some msg -> msg
-      | None -> ""
-    in
-    (* <addr> | <line> | <opcode> | <operand> *)
-    let addr_str = Utils.pad_left (Int.to_string offset) 4 '0' in
-    let line_str = Utils.pad_left line_str 4 ' ' in
-    let op_str = Utils.pad_right op_name 10 ' ' in
-    let operand_str = Utils.pad_right operand 13 ' ' in
-    let comment_str = Utils.pad_right comment 12 ' ' in
-    Printf.printf
-      "%s | %s | %s | %s | %s\n"
-      addr_str
-      line_str
-      op_str
-      operand_str
-      comment_str;
-    dissassemble_inst t xs ls cs (offset + 1) ln.row
-  | [], [], _ -> ()
-  | _ -> failwith "unreachable: dissassemble_inst"
+and dissassemble_inst t _codes lines comments offset prev =
+  (* Use lines/comments as the authoritative sequence; where comments[i] = None it's a code and we consume from codes list *)
+  let codes = get_codes t in
+  let lines = lines in
+  let comments = comments in
+  let rec loop i code_idx offset prev =
+    if i >= List.length lines
+    then ()
+    else (
+      let ln = List.nth lines i in
+      let cn = List.nth comments i in
+      let line_str = if ln.row = prev then "|" else Int.to_string ln.row in
+      let len = List.length comments in
+      if cn = None then (
+        (* This slot corresponds to a code. Check if the next slot is an inline comment on the same line *)
+        let x = List.nth codes code_idx in
+        let inline_comment =
+          if i + 1 < len then (
+            match List.nth comments (i + 1) with
+            | Some msg ->
+              let next_ln = List.nth lines (i + 1) in
+              if next_ln.row = ln.row then Some msg else None
+            | None -> None)
+          else None
+        in
+        let addr_str = Utils.pad_left (Int.to_string offset) 4 '0' in
+        let op_str = Utils.pad_right (Opcode.debug x) 10 ' ' in
+        let operand_str = Utils.pad_right (Opcode.operand x) 13 ' ' in
+        let line_str = Utils.pad_left line_str 4 ' ' in
+        let comment_str =
+          match inline_comment with Some msg -> Utils.pad_right msg 12 ' ' | None -> Utils.pad_right "" 12 ' '
+        in
+        Printf.printf "%s | %s | %s | %s | %s\n" addr_str line_str op_str operand_str comment_str;
+        let next_prev = ln.row in
+        let consumed = if inline_comment = None then 1 else 2 in
+        loop (i + consumed) (code_idx + 1) (offset + 1) next_prev)
+      else (
+        (* Comment-only slot *)
+        let addr_str = Utils.pad_left "" 4 ' ' in
+        let op_str = Utils.pad_right "" 10 ' ' in
+        let operand_str = Utils.pad_right "" 13 ' ' in
+        let line_str = Utils.pad_left line_str 4 ' ' in
+        let comment_str =
+          match cn with Some msg -> Utils.pad_right msg 12 ' ' | None -> Utils.pad_right "" 12 ' '
+        in
+        Printf.printf "%s | %s | %s | %s | %s\n" addr_str line_str op_str operand_str comment_str;
+        let next_prev = ln.row in
+        loop (i + 1) code_idx offset next_prev)
+  ) in
+  loop 0 0 offset prev
 ;;
 
 module Chunker = struct
@@ -101,7 +128,7 @@ module Chunker = struct
            (write_const2 chunk pp_chunk (ValFloat f) const_idx loc)
            (const_idx + 1)
            tail
-       | Comment msg -> from_tokens (chunk, write_comment pp_chunk msg) const_idx tail
+       | Comment msg -> from_tokens (chunk, write_comment pp_chunk loc msg) const_idx tail
        | _ -> failwith (Lexer.pp_loc loc ^ ": unreachable in Chunk.from_tokens"))
     | [] -> chunk, pp_chunk
   ;;

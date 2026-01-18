@@ -35,6 +35,12 @@ void machine_exec(Machine *mach) {
                 mach->regs[inst.operand.value] = stack_pop(mach);
 
         } break;
+        case OP_REG_POP: {
+            stack_push(mach, mach->regs[inst.operand.value]);
+        } break;
+        case OP_REG_SET: {
+            mach->regs[inst.args[0]] = inst.args[1];
+        } break;
         case OP_BINOP: {
             switch (inst.operand.binop) {
             case '+': {
@@ -78,6 +84,12 @@ void machine_debug(Machine *mach) {
         } break;
         case OP_POP: {
             printf("OP_POP");
+        } break;
+        case OP_REG_POP: {
+            printf("OP_POP_REG");
+        } break;
+        case OP_REG_SET: {
+            printf("OP_REG_SET -> %d, %d", inst.args[0], inst.args[1]);
         } break;
         case OP_BINOP: {
             printf("OP_BINOP -> '%c'", inst.operand.binop);

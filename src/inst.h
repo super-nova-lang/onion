@@ -7,9 +7,12 @@ typedef union {
 } Operand;
 
 typedef enum {
+    // STACK
     OP_PUSH,
     OP_POP,
+    // MATH
     OP_BINOP,
+    // CALLS
     OP_PRINT,
 } OpCode;
 
@@ -30,7 +33,12 @@ typedef struct {
     }
 
 #define DEF_POP()                                                              \
-    (Inst) { .op = OP_POP }
+    (Inst) { .op = OP_POP, .operand = {.value = -1} }
+
+#define DEF_POP_TO(arg)                                                        \
+    (Inst) {                                                                   \
+        .op = OP_POP, .operand = {.value = arg }                               \
+    }
 
 #define DEF_PRINT()                                                            \
     (Inst) { .op = OP_PRINT }

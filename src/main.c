@@ -8,8 +8,10 @@
 
 #define PROG_LEN (sizeof(prog) / sizeof(prog[0]))
 Inst prog[] = {
-    DEF_PUSH_INT(5), DEF_PUSH_INT(4), DEF_BINOP('+'), DEF_PRINT(),
-    DEF_PUSH_INT(5), DEF_PUSH_INT(4), DEF_BINOP('-'), DEF_PRINT(),
+    DEF_PUSH_INT(5), DEF_PUSH_INT(4), DEF_BINOP('+'), DEF_POP_TO(0),
+    DEF_PUSH_INT(2), DEF_PUSH_INT(1), DEF_BINOP('-'), DEF_POP_TO(1),
+    DEF_PUSH_INT(2), DEF_PUSH_INT(7), DEF_BINOP('*'), DEF_POP_TO(2),
+
 };
 
 Machine mach = {0};
@@ -43,6 +45,7 @@ int main(int argc, char **argv) {
         file_from_machine(&mach, file_path);
     } else {
         file_to_machine(&mach, file_path);
+        machine_exec(&mach);
         machine_debug(&mach);
     }
 }

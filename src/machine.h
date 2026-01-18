@@ -4,6 +4,7 @@
 #include "inst.h"
 
 #define STACK_MAX_SIZE 1024
+#define REGISTER_COUNT 16
 typedef struct {
     /* Program */
     Inst *prog;
@@ -13,6 +14,9 @@ typedef struct {
     /* Stack */
     int stack[STACK_MAX_SIZE];
     size_t stack_ptr;
+
+    /* Registers */
+    int regs[REGISTER_COUNT];
 } Machine;
 
 void machine_init(Machine *mach, Inst *prog, size_t prog_len);

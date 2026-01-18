@@ -29,7 +29,11 @@ void machine_exec(Machine *mach) {
             stack_push(mach, inst.operand.value);
         } break;
         case OP_POP: {
-            stack_pop(mach);
+            if (inst.operand.value == -1)
+                stack_pop(mach);
+            else
+                mach->regs[inst.operand.value] = stack_pop(mach);
+
         } break;
         case OP_BINOP: {
             switch (inst.operand.binop) {
@@ -70,7 +74,7 @@ void machine_debug(Machine *mach) {
         printf("%04zu: ", i);
         switch (inst.op) {
         case OP_PUSH: {
-            printf("OP_PUSH -> %d", inst.operand.value);
+            printf("OP_PUSH  -> %d", inst.operand.value);
         } break;
         case OP_POP: {
             printf("OP_POP");
@@ -87,6 +91,19 @@ void machine_debug(Machine *mach) {
         }
         printf("\n");
     }
+    printf("== stack ==\n");
+    for (size_t i = 0; i < mach->stack_ptr; ++i) {
+        int stack_item = mach->stack[i];
+        printf("%04zu: 0x%X", i, stack_item);
+    }
+    printf("== regs ==\n[ ");
+    for (size_t i = 0; i < REGISTER_COUNT; ++i) {
+        int stack_item = mach->regs[i];
+        printf("0x%X", stack_item);
+        if (i != REGISTER_COUNT - 1)
+            printf(", ");
+    }
+    printf(" ]\n");
 }
 
 // STACK

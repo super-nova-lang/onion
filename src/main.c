@@ -1,20 +1,18 @@
-#include <stddef.h>
+#include "inst.h"
+#include "machine.h"
 
-#include "machine.c"
-#include "opcode.c"
-
+#define PROG_LEN (sizeof(prog) / sizeof(prog[0]))
 Inst prog[] = {
-    {.op = OP_PUSH, .value = 0x1},
-    {.op = OP_PUSH, .value = 0x2},
-    {.op = OP_ADD},
-    {.op = OP_PRINT},
+    DEF_PUSH_INT(5),
+    DEF_PUSH_INT(4),
+    DEF_BINOP('+'),
+    DEF_PRINT(),
 };
 
-int main() {
-    Machine mach = {0};
-    machine_from_file(&mach, "out.onion");
-    // machine_init(&mach, prog, sizeof(prog) / sizeof(prog[0]));
-    machine_run(&mach);
-    machine_print(&mach);
-    machine_to_file(&mach, "out.onion");
+Machine mach = {0};
+
+int main(int argc, char **argv) {
+    machine_init(&mach, prog, PROG_LEN);
+    machine_exec(&mach);
+    machine_debug(&mach);
 }

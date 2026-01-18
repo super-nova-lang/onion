@@ -1,1 +1,1 @@
-gcc -o build/onion src/main.c
+gcc -Wall -Wextra -g -o build/onion src/*.c

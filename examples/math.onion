@@ -1,11 +1,10 @@
-;; Prints 0x3 to the console
-constant 0x1
-constant 0x2
-add
-return
+set reg 0 1 !- set call mode -!
+set reg 1 1 !- print call    -!
 
-;; Prints some float to the console
-constant 1.0
-constant 2.4
-sub
-return
+!- Do math -!
+push 1
+push 2
+add         !- push 0x1 + 0x2 -!
+pop reg 3   !- r3  = 0x3      -!
+call        !- call `print`   -!
+set reg 3 0 !- clean r3       -!

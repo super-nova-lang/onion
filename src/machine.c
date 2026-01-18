@@ -4,10 +4,16 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <string.h>
 
 #include "opcode.c"
 
 #define LIST_LEN(list) (sizeof(list) / sizeof(list[0]))
+
+#define ONION_VERSION "0.1.0"
+#define MAGIC "ONION " ONION_VERSION
+#define MAGIC_SIZE sizeof(MAGIC)
 
 #define PROG_MAX_SIZE 2048
 #define STACK_MAX_SIZE 256
@@ -28,7 +34,7 @@ void machine_init(Machine *mach, Inst *prog, size_t prog_len);
 void machine_run(Machine *mach);
 void machine_print(Machine *mach);
 void machine_to_file(Machine *mach, char *filepath);
-void machine_from_file(Machine *mach, char *filepath, size_t prog_size);
+void machine_from_file(Machine *mach, char *filepath);
 
 void stack_push(Machine *mach, int value);
 int stack_pop(Machine *mach);
@@ -124,17 +130,86 @@ void machine_print(Machine *mach) {
 
 void machine_to_file(Machine *mach, char *filepath) {
     FILE *fp = fopen(filepath, "wb");
-    fwrite(mach->prog, sizeof(Inst), mach->prog_len, fp);
+    if (!fp) {
+        perror("fopen");
+        exit(1);
+    }
+    /* write magic (without null terminator) */
+    if (fwrite(MAGIC, 1, MAGIC_SIZE, fp) != MAGIC_SIZE) {
+        perror("fwrite");
+        fclose(fp);
+        exit(1);
+    }
+    if (fwrite(mach->prog, sizeof(Inst), mach->prog_len, fp) != mach->prog_len) {
+        perror("fwrite");
+        fclose(fp);
+        exit(1);
+    }
     fclose(fp);
 }
 
-void machine_from_file(Machine *mach, char *filepath, size_t prog_size) {
+void machine_from_file(Machine *mach, char *filepath) {
     FILE *fp = fopen(filepath, "rb");
-    Inst *prog = malloc(sizeof(Inst) * prog_size);
-    size_t read = fread(prog, sizeof(Inst), prog_size, fp);
+    if (!fp) {
+        perror("fopen");
+        exit(1);
+    }
+    struct stat file_stat;
+    if (stat(filepath, &file_stat) != 0) {
+        perror("stat");
+        fclose(fp);
+        exit(1);
+    }
+    if (file_stat.st_size < MAGIC_SIZE) {
+        fprintf(stderr, "ERROR: file too small\n");
+        fclose(fp);
+        exit(1);
+    }
+    size_t prog_bytes = file_stat.st_size - MAGIC_SIZE;
+    if (prog_bytes % sizeof(Inst) != 0) {
+        fprintf(stderr, "ERROR: invalid program size\n");
+        fclose(fp);
+        exit(1);
+    }
+    size_t prog_len = prog_bytes / sizeof(Inst);
+
+    /* read and validate magic */
+    char *magic_buf = malloc(MAGIC_SIZE);
+    if (!magic_buf) {
+        fprintf(stderr, "ERROR: malloc failed\n");
+        fclose(fp);
+        exit(1);
+    }
+    if (fread(magic_buf, 1, MAGIC_SIZE, fp) != MAGIC_SIZE) {
+        perror("fread");
+        free(magic_buf);
+        fclose(fp);
+        exit(1);
+    }
+    if (memcmp(magic_buf, MAGIC, MAGIC_SIZE) != 0) {
+        fprintf(stderr, "ERROR: bad magic\n");
+        free(magic_buf);
+        fclose(fp);
+        exit(1);
+    }
+    free(magic_buf);
+
+    Inst *prog = malloc(sizeof(Inst) * prog_len);
+    if (!prog) {
+        fprintf(stderr, "ERROR: malloc failed\n");
+        fclose(fp);
+        exit(1);
+    }
+    if (fread(prog, sizeof(Inst), prog_len, fp) != prog_len) {
+        perror("fread");
+        free(prog);
+        fclose(fp);
+        exit(1);
+    }
     fclose(fp);
+
     mach->prog = prog;
-    mach->prog_len = read;
+    mach->prog_len = prog_len;
     mach->prog_ptr = 0;
     mach->stack_ptr = 0;
     for (size_t i = 0; i < REGISTER_COUNT; ++i)

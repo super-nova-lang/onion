@@ -1,1 +1,1 @@
-gcc -o onion src/main.c
+gcc -o build/onion src/main.c

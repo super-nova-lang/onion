@@ -1,1 +1,1 @@
-gcc -Wall -Wextra -g -o build/onion src/*.c
+gcc -Wall -Wextra -g -o build/onion src/*.c vendor/*
